@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Ice Cream Oracle 🔮</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 60% 20%, #ffe0ec 0%, #fff8f0 100%);
+      transition: background 0.8s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      max-width: 560px;
+    }
+    .header-icons {
+      font-size: 2.4rem;
+      margin-bottom: 0.3rem;
+    }
+    .header h1 {
+      font-family: 'Palatino Linotype', 'Palatino', 'Book Antiqua', serif;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 700;
+      color: #2d1b0e;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    .header p {
+      font-style: italic;
+      color: #8b5c3e;
+      font-size: 1rem;
+      margin-top: 0.6rem;
+    }
+
+    /* Flavor Grid */
+    .flavor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.9rem;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 2.5rem;
+    }
+
+    .flavor-btn {
+      background: #fff;
+      color: #3d2010;
+      border: 2px solid #e8d5c0;
+      border-radius: 1.2rem;
+      padding: 0.8rem 0.5rem;
+      cursor: pointer;
+      font-family: 'Georgia', serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .flavor-btn:hover {
+      transform: scale(1.03);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .flavor-btn .btn-emoji {
+      font-size: 1.6rem;
+    }
+    .flavor-btn.active {
+      color: #fff;
+      font-weight: 700;
+      transform: scale(1.06);
+    }
+
+    /* Hint text */
+    .hint {
+      color: #b08060;
+      font-style: italic;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.2rem;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Reading Card (modal) */
+    .reading-card {
+      position: relative;
+      max-width: 520px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      background: #fffdf9;
+      border-radius: 1.8rem;
+      padding: 2rem;
+      transform: scale(0.92) translateY(16px);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      scrollbar-width: thin;
+    }
+    .modal-overlay.visible .reading-card {
+      transform: scale(1) translateY(0);
+    }
+    .reading-card.dark-mode {
+      background: #1a0a04;
+    }
+
+    /* Close button */
+    .close-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,0.08);
+      color: #6b4226;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .close-btn:hover {
+      background: rgba(0,0,0,0.16);
+      transform: scale(1.1);
+    }
+    .reading-card.dark-mode .close-btn {
+      background: rgba(255,255,255,0.1);
+      color: #e8cfa8;
+    }
+    .reading-card.dark-mode .close-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      margin-bottom: 1rem;
+      padding-right: 2rem;
+    }
+    .card-header .card-emoji {
+      font-size: 2rem;
+    }
+    .card-header h2 {
+      font-family: 'Palatino Linotype', 'Palatino', serif;
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    .card-header .reading-label {
+      margin-left: auto;
+      font-size: 0.75rem;
+      font-style: italic;
+      color: #b08060;
+      white-space: nowrap;
+    }
+    .reading-card.dark-mode .reading-label {
+      color: rgba(201,169,110,0.5);
+    }
+
+    .card-body {
+      color: #3d2010;
+      font-size: 0.97rem;
+      line-height: 1.75;
+    }
+    .reading-card.dark-mode .card-body {
+      color: #e8cfa8;
+    }
+    .card-body p {
+      margin: 0 0 0.8rem;
+    }
+    .card-body em {
+      font-style: italic;
+    }
+
+    .card-footer {
+      border-top: 1px solid rgba(0,0,0,0.1);
+      margin-top: 1.2rem;
+      padding-top: 1rem;
+      font-size: 0.8rem;
+      color: #b08060;
+      font-style: italic;
+      text-align: center;
+    }
+    .reading-card.dark-mode .card-footer {
+      color: rgba(201,169,110,0.5);
+      border-top-color: rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-icons">🔮🍨🔮</div>
+    <h1>The Ice Cream Oracle</h1>
+    <p>Your flavor reveals your destiny</p>
+  </div>
+
+  <div class="flavor-grid" id="flavorGrid"></div>
+
+  <p class="hint" id="hint">↑ Choose your flavor to receive your cosmic reading ↑</p>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="reading-card" id="readingCard">
+      <button class="close-btn" id="closeBtn" aria-label="Close">✕</button>
+      <div class="card-header">
+        <span class="card-emoji" id="cardEmoji"></span>
+        <h2 id="cardTitle"></h2>
+        <span class="reading-label">✦ your reading ✦</span>
+      </div>
+      <div class="card-body" id="cardBody"></div>
+      <div class="card-footer">*This reading is 100% accurate and not made up at all*</div>
+    </div>
+  </div>
+
+  <script>
+    const flavors = [
+      {
+        name: "Vanilla", emoji: "🍦", color: "#f5e6c8", accent: "#c9a96e", dark: false,
+        reading: `Oh, *vanilla*. You classic, you. Don't let anyone tell you you're boring — you're not boring, you're *timeless*.
+You make an excellent first impression, remember everyone's birthdays, and probably have a very organized spice rack.
+Your soulmate is someone who can convince you to order dessert on a Tuesday.
+Lucky number: 1 (the original, the blueprint).
+This week's forecast: someone has been thinking about you more than they let on. Charming, slightly ridiculous, and very much hoping you notice. The oracle says: you will.`
+      },
+      {
+        name: "Chocolate", emoji: "🍫", color: "#3b1f0f", accent: "#e07b39", dark: true,
+        reading: `Deep. Intense. Slightly dramatic in the best possible way.
+You are the person who sends a voice note instead of a text, and we respect the commitment.
+You feel things strongly, love fiercely, and have very strong opinions about movies.
+Chocolate people are secretly the most romantic — they just need someone patient enough to find out.
+This week: lean into the intensity. Someone nearby is already leaning back — paying attention quietly, and very much liking what they see.`
+      },
+      {
+        name: "Strawberry", emoji: "🍓", color: "#fce4ec", accent: "#e91e63", dark: false,
+        reading: `You are *sunshine in human form* and you know it.
+Strawberry lovers are the ones who bring homemade snacks to parties and somehow always smell nice.
+You give great hugs. You have a playlist for every mood.
+Warning: you tend to fall too fast — but honestly it's one of your most endearing qualities.
+This week: let someone take care of you for once. You've earned it, peach. And the oracle whispers — there's already a volunteer. They just haven't announced themselves yet.`
+      },
+      {
+        name: "Mint Choc Chip", emoji: "🌿", color: "#e8f5e9", accent: "#2e7d32", dark: false,
+        reading: `Opinionated. Bold. Unbothered. You have chosen a divisive flavor and you did not hesitate — that says *everything*.
+Mint choc chip people are the ones who thrive on chaos and still submit things early.
+You're refreshing to be around, with a little edge. Your love language is witty banter with unexpected tenderness.
+Forecast: an interesting conversation is about to find you. Someone thinks they can match your energy. The stars are not confirming — but they are entertained.`
+      },
+      {
+        name: "Cookie Dough", emoji: "🍪", color: "#fff3e0", accent: "#bf7b3a", dark: false,
+        reading: `You want the fun *and* the comfort — and you have figured out that you can have both. Genius.
+Cookie dough people are spontaneous planners: they have a 10-year vision but will also drop everything for a road trip.
+Deeply lovable. Slightly chaotic. Would absolutely eat the cookie dough before the cookies are done.
+This week: say yes to the thing you've been overthinking. The oracle sees someone hoping very much that the answer is yes. It'll be more fun than you expect.`
+      },
+      {
+        name: "Pistachio", emoji: "🟢", color: "#f1f8e9", accent: "#558b2f", dark: false,
+        reading: `Okay, *hello*, sophisticated. You didn't come here to play.
+Pistachio people are the ones with interesting bookmarks, strong opinions on coffee, and an apartment that actually has art on the walls.
+You're an acquired taste — and the people who get you, *really* get you.
+Your romantic forecast: someone is about to discover you're more fun than you look — and will be delighted in a way they didn't entirely plan for.
+Lucky accessory: that one item you already own that everyone compliments.`
+      },
+      {
+        name: "Rocky Road", emoji: "🏔️", color: "#2c1a0e", accent: "#d4a847", dark: true,
+        reading: `You contain multitudes. Chocolate? Yes. Marshmallow? Obviously. Nuts? Absolutely.
+Rocky Road lovers are the ones with the most interesting life stories and the best advice.
+You've been through some things, you've learned some things, and now you've earned the right to eat the chaotic ice cream without apology.
+This week: someone is going to find your complexity extremely attractive. They're already working through the layers — and in no rush whatsoever.`
+      },
+      {
+        name: "Mango Sorbet", emoji: "🥭", color: "#fff8e1", accent: "#f57f17", dark: false,
+        reading: `You are *vacation energy* bottled into a person.
+Mango sorbet people are free-spirited, passport-stamped, and somehow always look good in photos.
+You don't need the dairy — you don't need the drama either.
+You know exactly what you want and you order it without consulting the menu twice.
+Forecast: a golden opportunity is ripening — and it has a smile that makes you slightly forget what you were saying. You'll know it when you see it. Pick it.`
+      },
+      {
+        name: "Butter Pecan", emoji: "🧈", color: "#fdf3e3", accent: "#a0692a", dark: false,
+        reading: `You are an old soul with excellent taste and zero patience for nonsense.
+Butter pecan people know how to slow down, savor things, and give compliments that actually land.
+You've probably been called "mature for your age" since you were nine.
+You're the person everyone goes to for advice — and you give it without making them feel bad.
+This week's forecast: let someone impress you for once. You've been doing all the heavy lifting — and the oracle sees someone very eager to carry something. They've been warming up. Possibly for a while.`
+      },
+      {
+        name: "Cookies & Cream", emoji: "🖤", color: "#f5f5f5", accent: "#424242", dark: false,
+        reading: `You are a walking contradiction and you have fully embraced it. Dark and light. Crunchy and smooth. Chaotic neutral.
+Cookies & cream people are the life of the party who also secretly love a quiet night in.
+You're adaptable, magnetic, and somehow look good in every photo even when you weren't ready.
+Warning: you sometimes can't decide what you want — not just in ice cream.
+Forecast: stop overthinking it. Both options are good. And while you're deliberating — someone nearby has already made up their mind. They're just waiting for you to look up.`
+      },
+      {
+        name: "Salted Caramel", emoji: "🍮", color: "#fff8e7", accent: "#c07c1a", dark: false,
+        reading: `Sweet with a twist. You figured out that a little contrast makes everything better — in food *and* in people.
+Salted caramel lovers are emotionally intelligent, stylish without trying, and have a laugh that makes strangers turn around.
+You also have high standards, which is not a flaw, that is wisdom in a cup.
+This week: someone is about to find out you're even better than advertised. They already suspected it. The oracle confirms it. Try not to look too smug about it.`
+      },
+      {
+        name: "Lemon Sorbet", emoji: "🍋", color: "#fffde7", accent: "#f9a825", dark: false,
+        reading: `Bright. Sharp. Unapologetically yourself. You walk into a room and the energy shifts — in a good way.
+Lemon sorbet people are funny, quick-witted, and have a very clean apartment.
+You don't sugarcoat things, which means people trust you completely and also slightly fear your honesty.
+Your love language is teasing someone affectionately until they realize you actually adore them.
+Forecast: someone who can actually keep up is headed your way. They'll match your energy, throw it right back, and be entirely too pleased with themselves about it. Finally.`
+      },
+      {
+        name: "Black Sesame", emoji: "🖤", color: "#212121", accent: "#9e9e9e", dark: true,
+        reading: `Oh, so you're *that* person. Intriguing. A little mysterious. Probably has a skincare routine.
+Black sesame lovers are cultured, quietly confident, and have strong opinions about aesthetics.
+You don't need to be the loudest one in the room because you know the most interesting people will find you anyway.
+You are an acquired taste — nutty, complex, unforgettable.
+Forecast: someone is currently trying to figure you out — and finding the process far more enjoyable than they anticipated. They haven't stopped thinking about it. This is entirely your fault.`
+      },
+      {
+        name: "Lavender Honey", emoji: "💜", color: "#f3e5f5", accent: "#7b1fa2", dark: false,
+        reading: `You are a certified *ethereal being* and everyone around you knows it.
+Lavender honey people burn good candles, take long baths, and use words like "restorative."
+You have a calming effect on chaotic people, which means chaotic people are *very* drawn to you.
+You tend to romanticize everything — the morning light, a good cup of tea, someone's hands — and it's honestly a superpower.
+This week: something is headed your way — a little chaotic, unexpectedly warm, and utterly convinced you are the most interesting person they've encountered in a long time. You'll recognize it. It'll feel like it was made for you.`
+      },
+      {
+        name: "Spicy Mango Chili", emoji: "🌶️", color: "#fbe9e7", accent: "#bf360c", dark: false,
+        reading: `You are NOT here to be normal and we love that for you.
+Spicy mango chili people are adventurous, a little unpredictable, and the most memorable person at any gathering.
+You have a story for every occasion. You've done things. You've *seen* things.
+You need a partner who can handle the heat — and most people think they can until they actually meet you.
+Forecast: this week brings someone convinced they can handle it. The oracle is not confirming this. But they're going to have a spectacular time trying. Whether it becomes a story, a rivalry, or something else entirely — well, that's the fun part, isn't it?`
+      },
+      {
+        name: "Tiramisu", emoji: "☕", color: "#efebe9", accent: "#5d4037", dark: false,
+        reading: `Elegant. Caffeinated. Slightly Italian in spirit even if you've never been to Italy.
+Tiramisu people dress well for casual occasions and have opinions about the correct way to make coffee.
+You are sophisticated but never boring — there's always something layered underneath the polished surface.
+People fall for you slowly and then all at once, much like the dessert itself.
+This week: let someone see a layer they haven't seen yet. The timing is right, the espresso has kicked in — and someone has been patiently working their way here with a very hopeful expression.`
+      },
+      {
+        name: "Can't Decide 🤷‍♀️", emoji: "🍨", color: "#fce4ff", accent: "#ab47bc", dark: false,
+        reading: `Ah. So here we are. You've looked at every option. You've considered, reconsidered, and considered again.
+Classic you — not because you don't have taste, but because you have *too much* of it.
+Indecision is just passion with commitment issues, and that's honestly fine.
+But here's what the oracle sees clearly: what you actually need is someone to step up, look you in the eye, and just say "trust me on this one."
+Someone confident enough to make the call, and self-aware enough to know they got lucky.
+The stars are practically screaming it. That someone is closer than you think — and they have opinions. They will share them.
+The Oracle has spoken. You're welcome.`
+      },
+    ];
+
+    // Render buttons
+    const grid = document.getElementById('flavorGrid');
+    flavors.forEach((f, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'flavor-btn';
+      btn.dataset.index = i;
+      btn.innerHTML = `<span class="btn-emoji">${f.emoji}</span>${f.name}`;
+      btn.addEventListener('click', () => selectFlavor(i));
+      grid.appendChild(btn);
+    });
+
+    let activeIndex = null;
+
+    function closeModal() {
+      const overlay = document.getElementById('modalOverlay');
+      overlay.classList.remove('visible');
+      // Deactivate buttons
+      document.querySelectorAll('.flavor-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.background = '#fff';
+        btn.style.borderColor = '#e8d5c0';
+        btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
+      });
+      activeIndex = null;
+    }
+
+    function selectFlavor(i) {
+      const f = flavors[i];
+      const overlay = document.getElementById('modalOverlay');
+      const card = document.getElementById('readingCard');
+
+      // Update active button styles
+      document.querySelectorAll('.flavor-btn').forEach((btn, idx) => {
+        if (idx === i) {
+          btn.classList.add('active');
+          btn.style.background = f.accent;
+          btn.style.borderColor = f.accent;
+          btn.style.boxShadow = `0 4px 18px ${f.accent}55`;
+        } else {
+          btn.classList.remove('active');
+          btn.style.background = '#fff';
+          btn.style.borderColor = '#e8d5c0';
+          btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.06)';
+        }
+      });
+
+      // Update body background
+      document.body.style.background = `radial-gradient(ellipse at 60% 20%, ${f.color} 0%, #fff8f0 100%)`;
+
+      // Fill card content
+      document.getElementById('cardEmoji').textContent = f.emoji;
+      document.getElementById('cardTitle').textContent = f.name;
+      document.getElementById('cardTitle').style.color = f.accent;
+
+      // Render reading text — handle *italic* and line breaks
+      const body = document.getElementById('cardBody');
+      body.innerHTML = '';
+      f.reading.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const p = document.createElement('p');
+        p.innerHTML = trimmed.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        body.appendChild(p);
+      });
+
+      // Card style
+      card.style.border = `2px solid ${f.accent}`;
+      card.style.boxShadow = `0 8px 40px ${f.accent}55`;
+      if (f.dark) {
+        card.classList.add('dark-mode');
+      } else {
+        card.classList.remove('dark-mode');
+      }
+
+      // Scroll card to top (in case previously scrolled)
+      card.scrollTop = 0;
+
+      // Show modal
+      overlay.classList.add('visible');
+      activeIndex = i;
+    }
+
+    // Close button
+    document.getElementById('closeBtn').addEventListener('click', closeModal);
+
+    // Click outside card to close
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // Escape key to close
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeModal();
+    });
+  </script>
+</body>
+</html>
